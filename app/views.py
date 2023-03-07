@@ -4,10 +4,13 @@ Jinja2 Documentation:    https://jinja.palletsprojects.com/
 Werkzeug Documentation:  https://werkzeug.palletsprojects.com/
 This file contains the routes for your application.
 """
-
-from app import app
-from flask import render_template, request, redirect, url_for
-
+import os
+from app import app, db
+from flask import render_template, request, redirect, url_for, flash
+from .models import Property,  PropertyForm
+from . import db
+from werkzeug.utils import secure_filename
+from flask import send_from_directory
 
 ###
 # Routing for your application.
@@ -22,7 +25,7 @@ def home():
 @app.route('/about/')
 def about():
     """Render the website's about page."""
-    return render_template('about.html', name="Mary Jane")
+    return render_template('about.html', name="Ranaldo Green")
 
 
 ###
@@ -61,3 +64,47 @@ def add_header(response):
 def page_not_found(error):
     """Custom 404 page."""
     return render_template('404.html'), 404
+
+
+# Define the routes and their corresponding view functions
+@app.route('/properties/create', methods=['GET', 'POST'])
+def create():
+    form = PropertyForm()
+    if request.method == 'POST':
+        # Get form data
+        title = request.form['title']
+        description = request.form['description']
+        bedrooms = request.form['bedrooms']
+        bathrooms = request.form['bathrooms']
+        location = request.form['location']
+        price = request.form['price']
+        prop_type = request.form['type']
+
+        # Get file and save to upload folder
+        photo_file = request.files['photo_path']
+        filename = secure_filename(photo_file.filename)
+        photo_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+        # Create new property object and add to database
+        new_prop = Property(title=title, description=description, bedrooms=bedrooms, bathrooms=bathrooms, location=location, price=price, type=prop_type, photo_path=filename)
+        db.session.add(new_prop)
+        db.session.commit()
+
+        flash('Property added successfully', 'success')
+        return redirect(url_for('properties'))
+
+    return render_template('create.html',form=form)
+
+@app.route('/properties')
+def properties():
+    properties = Property.query.all()
+    return render_template('properties.html', properties=properties)
+
+@app.route('/properties/<propertyid>')
+def property(propertyid):
+    property = Property.query.get(propertyid)
+    return render_template('property.html', property=property)
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(os.path.join(os.getcwd(), app.config['UPLOAD_FOLDER']), filename)
