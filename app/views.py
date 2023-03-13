@@ -7,7 +7,8 @@ This file contains the routes for your application.
 import os
 from app import app, db
 from flask import render_template, request, redirect, url_for, flash
-from .models import Property,  PropertyForm
+from .forms import PropertyForm
+from .models import Property
 from . import db
 from werkzeug.utils import secure_filename
 from flask import send_from_directory
@@ -81,12 +82,12 @@ def create():
         prop_type = request.form['type']
 
         # Get file and save to upload folder
-        photo_file = request.files['photo_path']
+        photo_file = request.files['photo']
         filename = secure_filename(photo_file.filename)
         photo_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
         # Create new property object and add to database
-        new_prop = Property(title=title, description=description, bedrooms=bedrooms, bathrooms=bathrooms, location=location, price=price, type=prop_type, photo_path=filename)
+        new_prop = Property(title=title, description=description, bedrooms=bedrooms, bathrooms=bathrooms, location=location, price=price, type=prop_type, photo=filename)
         db.session.add(new_prop)
         db.session.commit()
 
